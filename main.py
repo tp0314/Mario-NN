@@ -126,19 +126,22 @@ def mutate_population(population, n_of_elites):
                 if random.random() < 0.1:
                     e.output_biases[i][j] += random.uniform(-0.05, 0.05)
     
-def train(elements, show_all_games, steps, gen_count):
+def train(elements, show_all_games, steps, gen_count, action_repeat = 4):
     cols = math.ceil(math.sqrt(len(elements)))
     for step in range(steps):
         obst_grids, frames = step_games_and_return_obstacles(elements, show_all_games)
 
-        for i, e in enumerate(elements): 
-            e.obstacle_grid = obst_grids[i].flatten()
-            e.forward(e.obstacle_grid, e.weights, e.biases)
-            e.activation_ReLU(e.output)
-            e.forward(e.output, e.hidden_layer_weights, e.output_biases)
-            # print(e.output)
-            e.generate_game_input()
+        for e in elements:
             e.measure_fitness()
+
+        if step % action_repeat == 0:
+            for i, e in enumerate(elements): 
+                e.obstacle_grid = obst_grids[i].flatten()
+                e.forward(e.obstacle_grid, e.weights, e.biases)
+                e.activation_ReLU(e.output)
+                e.forward(e.output, e.hidden_layer_weights, e.output_biases)
+                # print(e.output)
+                e.generate_game_input()
         
         if show_all_games:
             leader_idx = max(range(len(elements)), key=lambda k: elements[k].fitness)
