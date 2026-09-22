@@ -19,6 +19,7 @@ class Game:
         self.truncated = None
         self.ram = self.env.unwrapped.ram
         self.grid = None
+        self.alive_this_gen = True
 
     def tile_loc_to_ram_address(self,x, y):
         page = x // 16
@@ -74,15 +75,23 @@ def step_games_and_return_obstacles(elements, show_all_games):
     obst_grids = []
     frames = []
     for e in elements:
+        if not e.game.alive_this_gen:
+            obst_grids.append(e.game.grid)
+            if show_all_games:
+                frames.append(e.game.env.render())
+            continue
         if e.game.done:
             e.game.state, e.game.info = e.game.env.reset()
             e.game.done = False
-        print(e.game.info)
         action = e.input
-        e.game.state, e.game.reward, e.game.terminated, e.game.truncated, e.game.info = e.game.env.step(action)
+        e.game.state, e.game.reward,e.game.terminated, e.game.truncated, e.game.info = e.game.env.step(action)
         e.game.done = e.game.terminated or e.game.truncated
+        if e.game.done:
+            e.game.alive_this_gen = False
+            e.game.reward = 0
         e.game.grid = e.game.get_grid()
         obst_grids.append(e.game.grid)
+        # print(e.game.info)
         if show_all_games:
             frames.append(e.game.env.render())
     return obst_grids, frames

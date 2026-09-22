@@ -36,35 +36,53 @@ class Element:
 
     def breed(self, partner):
         child = Element(208,12)
+        num_hidden = self.hidden_layer_weights.shape[0]
 
-        for i in range(len(self.weights)):
-            for j in range(len(self.weights[i])):
-                if random.choice([0, 1]):
-                    child.weights[i][j] = partner.weights[i][j]
-                else:
-                    child.weights[i][j] = self.weights[i][j]
+        for h in range(num_hidden):
+            if random.choice([0,1]):
+                source = self
+            else:
+                source = partner
+            child.weights[:, h] = source.weights[:,h]
+            child.biases[0,h] = source.biases[0,h]
+            child.hidden_layer_weights[h,:] = source.hidden_layer_weights[h,:]
 
-        for i in range(len(self.biases)):
-            for j in range(len(self.biases[i])):
-                if random.choice([0, 1]):
-                    child.biases[i][j] = partner.biases[i][j]
-                else:
-                    child.biases[i][j] = self.biases[i][j]
-
-        for i in range(len(self.hidden_layer_weights)):
-            for j in range(len(self.hidden_layer_weights[i])):
-                if random.choice([0, 1]):
-                    child.hidden_layer_weights[i][j] = partner.hidden_layer_weights[i][j]
-                else:
-                    child.hidden_layer_weights[i][j] = self.hidden_layer_weights[i][j]
-
-        for i in range(len(self.output_biases)):
-            for j in range(len(self.output_biases[i])):
-                if random.choice([0, 1]):
-                    child.output_biases[i][j] = partner.output_biases[i][j]
-                else:
-                    child.output_biases[i][j] = self.output_biases[i][j]
+        for i in range(len(self.output_biases[0])):
+            if random.choice([0,1]):
+                source = self
+            else:
+                source = partner
+            child.output_biases[0][i] = source.output_biases[0][i]
         return child
+
+        # for i in range(len(self.weights)):
+        #     for j in range(len(self.weights[i])):
+        #         if random.choice([0, 1]):
+        #             child.weights[i][j] = partner.weights[i][j]
+        #         else:
+        #             child.weights[i][j] = self.weights[i][j]
+
+        # for i in range(len(self.biases)):
+        #     for j in range(len(self.biases[i])):
+        #         if random.choice([0, 1]):
+        #             child.biases[i][j] = partner.biases[i][j]
+        #         else:
+        #             child.biases[i][j] = self.biases[i][j]
+
+        # for i in range(len(self.hidden_layer_weights)):
+        #     for j in range(len(self.hidden_layer_weights[i])):
+        #         if random.choice([0, 1]):
+        #             child.hidden_layer_weights[i][j] = partner.hidden_layer_weights[i][j]
+        #         else:
+        #             child.hidden_layer_weights[i][j] = self.hidden_layer_weights[i][j]
+
+        # for i in range(len(self.output_biases)):
+        #     for j in range(len(self.output_biases[i])):
+        #         if random.choice([0, 1]):
+        #             child.output_biases[i][j] = partner.output_biases[i][j]
+        #         else:
+        #             child.output_biases[i][j] = self.output_biases[i][j]
+        # return child
 
 def create_population(n):
     elements = []
@@ -91,7 +109,7 @@ def generate_mating_pool():
     return mating_pool
 
 def breed_new_pop(n, mating_pool, population):
-    n_of_elites = int(n / 15)
+    n_of_elites = max(2,int(n*.15))
 
     elites = sorted(population, key = lambda e: e.fitness, reverse = True)[:n_of_elites]
     new_population = [clone_network(e) for e in elites]
@@ -146,6 +164,16 @@ def train(elements, show_all_games, steps, gen_count, action_repeat = 4):
         if show_all_games:
             leader_idx = max(range(len(elements)), key=lambda k: elements[k].fitness)
             render_with_feature(frames, cols, frames[leader_idx], fitness_history, gen_count)
+
+        anyone_alive = False
+        for e in elements:
+            if e.game.alive_this_gen:
+                anyone_alive = True
+                break
+        if not anyone_alive:
+            print(f"all marios dead, gen {gen_count} over")
+            break
+    
 
     close_games(elements,show_all_games)
 
