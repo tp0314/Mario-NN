@@ -27,3 +27,9 @@ Its safe to stop the simulation when ever with Control+C (on windows), this will
 Project originally came to thought through wondering what evolutionary system I could make, then I found a public github repo [Super Mario Bros](https://github.com/Kautenja/gym-super-mario-bros)
 to learn how to frame the github emulator to work on my computer, then using OpenCv to run the window. Without this repo the project would not have been posible for me
 
+## To Run
+to install all dependencies please run 'pip install -r requirements.txt' to get all the packages. See ['requirements.txt'](requirements.txt) for the exact package list.
+
+Then run:
+'python main.py'. 
+At launch this will fire up the emulator and create some files, 'best_neural_network.npz', 'last_population.npz' and '__pycache__'
