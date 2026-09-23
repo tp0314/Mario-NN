@@ -6,7 +6,6 @@ import cv2
 import random
 import math
 import time
-from collections import deque
 
 class Game:
     def __init__(self):
@@ -22,16 +21,23 @@ class Game:
         self.grid = None
         self.alive_this_gen = True
 
-        self.position_history = deque(maxlen=120) #will track marios x position and stores every 120 frames (2 seconds)
+        self.max_x_reached = 0
+        self.frames_without_progress = 0
         self.stuck_threshold = 5  #pixle movement for what is classified as stuck
+        self.stuck_frame_limit = 120
         self.override_action = 4  #forced output of [right, A, B] real action is a running jump to the right
         self.override_duration = 25 #frames that get held when force jump is triggered on stuck
         self.override_frames_remaining = 0
 
+    def update_stuck_tracker(self, mario_level_x):
+        if mario_level_x > self.max_x_reached + self.stuck_threshold:
+            self.max_x_reached = mario_level_x
+            self.frames_without_progress = 0
+        else:
+            self.frames_without_progress += 1
+
     def is_stuck(self):
-        if len(self.position_history) < self.position_history.maxlen:
-            return False
-        return (self.position_history[-1] - self.position_history[0] < self.stuck_threshold)
+        return self.frames_without_progress >= self.stuck_frame_limit
 
     def tile_loc_to_ram_address(self,x, y):
         page = x // 16
@@ -48,7 +54,7 @@ class Game:
         mario_x = int(self.ram[0x3ad])
         mario_y = int(self.ram[0x3b8]) + 16
 
-        self.position_history.append(mario_level_x) #mario is now tracked on his x position every frame
+        self.update_stuck_tracker(mario_level_x) #mario is now tracked on his x position every frame
 
         x_start = mario_level_x - mario_x
 
@@ -76,6 +82,8 @@ class Game:
                 y_loc = (enemy_y + 8 - 32) // 16
                 if 0 <= x_loc < 16 and 0 <= y_loc < 13:
                     rendered_screen[y_loc, x_loc] = -1
+        if self.override_frames_remaining > 0:
+            print(f" override active, y = {mario_y}")
         return rendered_screen
 
 def tile(frames, cols):
@@ -102,7 +110,8 @@ def step_games_and_return_obstacles(elements, show_all_games):
             action = e.game.override_action                        #This block for now is temp fix for mario getting stuck
             e.game.override_frames_remaining -= 1
         elif e.game.is_stuck():
-            action = e.game.override_action
+            print(f"STUCK triggered at x={e.game.max_x_reached}")   # addded to check marios stuck position
+            action = 1
             e.game.override_frames_remaining = e.game.override_duration -1
         else:
             action = e.input                                       ######
