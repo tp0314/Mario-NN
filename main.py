@@ -9,6 +9,8 @@ from EM_Ram import *
 import multiprocessing
 import copy
 
+# print(list(enumerate(COMPLEX_MOVEMENT)))
+
 class Element:
     def __init__(self, number_of_inputs, number_of_neurons):
         self.game = Game()

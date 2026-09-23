@@ -6,6 +6,7 @@ import cv2
 import random
 import math
 import time
+from collections import deque
 
 class Game:
     def __init__(self):
@@ -21,6 +22,17 @@ class Game:
         self.grid = None
         self.alive_this_gen = True
 
+        self.position_history = deque(maxlen=120) #will track marios x position and stores every 120 frames (2 seconds)
+        self.stuck_threshold = 5  #pixle movement for what is classified as stuck
+        self.override_action = 4  #forced output of [right, A, B] real action is a running jump to the right
+        self.override_duration = 25 #frames that get held when force jump is triggered on stuck
+        self.override_frames_remaining = 0
+
+    def is_stuck(self):
+        if len(self.position_history) < self.position_history.maxlen:
+            return False
+        return (self.position_history[-1] - self.position_history[0] < self.stuck_threshold)
+
     def tile_loc_to_ram_address(self,x, y):
         page = x // 16
         x_loc = x % 16
@@ -35,6 +47,8 @@ class Game:
         mario_level_x = int(self.ram[0x6d]) * 256 + int(self.ram[0x86])
         mario_x = int(self.ram[0x3ad])
         mario_y = int(self.ram[0x3b8]) + 16
+
+        self.position_history.append(mario_level_x) #mario is now tracked on his x position every frame
 
         x_start = mario_level_x - mario_x
 
@@ -80,10 +94,19 @@ def step_games_and_return_obstacles(elements, show_all_games):
             if show_all_games:
                 frames.append(e.game.env.render())
             continue
-        if e.game.done:
-            e.game.state, e.game.info = e.game.env.reset()
-            e.game.done = False
-        action = e.input
+
+        if e.game.done:                                            ######
+            e.game.state, e.game.info = e.game.env.reset()         
+            e.game.done = False 
+        if e.game.override_frames_remaining > 0:
+            action = e.game.override_action                        #This block for now is temp fix for mario getting stuck
+            e.game.override_frames_remaining -= 1
+        elif e.game.is_stuck():
+            action = e.game.override_action
+            e.game.override_frames_remaining = e.game.override_duration -1
+        else:
+            action = e.input                                       ######
+
         e.game.state, e.game.reward,e.game.terminated, e.game.truncated, e.game.info = e.game.env.step(action)
         e.game.done = e.game.terminated or e.game.truncated
         if e.game.done:
